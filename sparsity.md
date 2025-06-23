@@ -144,15 +144,82 @@ $$
 ## 四、稀疏优化方法（Sparse Optimization Approaches）
 
 ### 1. 匹配追踪（Matching Pursuit）
-- 思想：从字典中一步步选出最匹配的基向量来逼近原信号。
-- 过程：
-  1. 初始化残差 r₀ = b
-  2. 找出与当前残差最相关的列 a_j
-  3. 更新系数 α_j
-  4. 更新残差 rₖ₊₁ = rₖ - α_j a_j
-  5. 重复直到满足终止条件
 
-**优点：简单直观；缺点：可能收敛慢**
+匹配追踪算法是一种用于求解稀疏表示问题的迭代贪心算法。其核心思想是在每一步迭代中，从给定的字典中选择最能匹配当前残差的原子（基向量），从而逐步构建信号的稀疏表示。
+
+#### 算法目标
+给定信号 $\mathbf{b} \in \mathbb{R}^m$ 和字典矩阵 $\mathbf{A} = [\mathbf{a}_1, \mathbf{a}_2, ..., \mathbf{a}_n] \in \mathbb{R}^{m \times n}$（其中每列 $\mathbf{a}_i$ 为标准化的基向量），找到一个稀疏向量 $\mathbf{x}$，使得 $\mathbf{Ax} \approx \mathbf{b}$。
+
+#### 详细算法步骤
+1. **初始化**：
+   - 设置残差 $\mathbf{r}_0 = \mathbf{b}$
+   - 设置迭代计数器 $k = 0$
+   - 初始化系数向量 $\mathbf{x} = \mathbf{0}$
+
+2. **迭代过程**：
+   - 计算所有字典原子与当前残差的内积：
+     $$ \text{correlation}_j = |\langle \mathbf{r}_k, \mathbf{a}_j \rangle| = |\mathbf{a}_j^\top \mathbf{r}_k|, \quad j = 1,\ldots,n $$
+   - 选择相关性最大的原子：
+     $$ j^* = \arg\max_j |\langle \mathbf{r}_k, \mathbf{a}_j \rangle| $$
+   - 计算投影系数：
+     $$ \alpha_k = \langle \mathbf{r}_k, \mathbf{a}_{j^*} \rangle $$
+   - 更新对应位置的系数：
+     $$ x_{j^*} = x_{j^*} + \alpha_k $$
+   - 更新残差：
+     $$ \mathbf{r}_{k+1} = \mathbf{r}_k - \alpha_k \mathbf{a}_{j^*} $$
+   - $k = k + 1$
+
+3. **终止条件**（满足任一即可）：
+   - 残差范数小于预设阈值：$\|\mathbf{r}_k\|_2 < \varepsilon$
+   - 达到最大迭代次数：$k > K_{\text{max}}$
+   - 最大相关性小于阈值：$\max_{j} |\langle \mathbf{r}_k, \mathbf{a}_j \rangle| < \delta$
+
+#### 算法示例
+考虑一个简单的信号分解问题：
+
+**输入**：
+- 信号向量 $\mathbf{b} = [3, 2, 1]^T$
+- 字典矩阵 $\mathbf{A} = \begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}$
+- 停止阈值 $\varepsilon = 0.1$
+
+**迭代过程**：
+
+1. **初始化**：
+   - $\mathbf{r}_0 = \mathbf{b} = [3, 2, 1]^T$
+   - $\mathbf{x} = [0, 0, 0]^T$
+   - $k = 0$
+
+2. **第一次迭代**：
+   - 计算相关性公式：$|\langle \mathbf{r}_k, \mathbf{a}_j \rangle| = |\mathbf{a}_j^\top \mathbf{r}_k|$
+   - 代入计算：
+     $|\langle \mathbf{r}_0, \mathbf{a}_1 \rangle| = |3\times1 + 2\times0 + 1\times1| = |3+0+1| = 4$
+     $|\langle \mathbf{r}_0, \mathbf{a}_2 \rangle| = |3\times0 + 2\times1 + 1\times1| = |0+2+1| = 3$
+     $|\langle \mathbf{r}_0, \mathbf{a}_3 \rangle| = |3\times1 + 2\times1 + 1\times0| = |3+2+0| = 5$
+   - 选择 $j^* = 3$（最大相关性）
+   - 投影系数公式：$\alpha_k = \langle \mathbf{r}_k, \mathbf{a}_{j^*} \rangle$
+   - 代入计算：$\alpha_0 = \mathbf{a}_3^\top \mathbf{r}_0 = [1, 1, 0] \cdot [3, 2, 1]^T = 1\times3 + 1\times2 + 0\times1 = 3+2+0 = 5$
+   - 更新系数公式：$x_{j^*} = x_{j^*} + \alpha_k$
+   - 代入计算：$x_3 = 0 + 5 = 5$
+   - 残差更新公式：$\mathbf{r}_{k+1} = \mathbf{r}_k - \alpha_k \mathbf{a}_{j^*}$
+   - 代入计算：$\mathbf{r}_1 = \mathbf{r}_0 - 5\mathbf{a}_3 = [3, 2, 1]^T - 5[1, 1, 0]^T = [3-5, 2-5, 1-0]^T = [-2, -3, 1]^T$
+
+3. **第二次迭代**：
+   - 使用相关性公式计算：
+     $|\langle \mathbf{r}_1, \mathbf{a}_1 \rangle| = |-2\times1 + (-3)\times0 + 1\times1| = |-2+0+1| = |-1| = 1$
+     $|\langle \mathbf{r}_1, \mathbf{a}_2 \rangle| = |-2\times0 + (-3)\times1 + 1\times1| = |0-3+1| = |-2| = 2$
+     $|\langle \mathbf{r}_1, \mathbf{a}_3 \rangle| = |-2\times1 + (-3)\times1 + 1\times0| = |-2-3+0| = |-5| = 5$
+   - 选择 $j^* = 3$ (最大相关性)
+   - 使用投影系数公式计算：$\alpha_1 = \langle \mathbf{r}_1, \mathbf{a}_3 \rangle = [-2, -3, 1] \cdot [1, 1, 0]^T = -2\times1 + (-3)\times1 + 1\times0 = -2-3+0 = -5$
+   - 使用系数更新公式：$x_3 = x_3 + \alpha_1 = 5 + (-5) = 0$
+   - 使用残差更新公式计算：$\mathbf{r}_2 = \mathbf{r}_1 - \alpha_1 \mathbf{a}_3 = [-2, -3, 1]^T - (-5)[1, 1, 0]^T = [-2, -3, 1]^T + 5[1, 1, 0]^T = [-2+5, -3+5, 1+0]^T = [3, 2, 1]^T$
+
+4. **终止**：
+   残差范数计算公式：$\|\mathbf{r}_k\|_2 = \sqrt{\sum_{i=1}^n r_i^2}$
+   代入计算得 $\|\mathbf{r}_2\|_2 = \|[3, 2, 1]^T\|_2 = \sqrt{3^2 + 2^2 + 1^2} = \sqrt{9+4+1} = \sqrt{14} \approx 3.74$
+   因为 $\|\mathbf{r}_2\|_2 \approx 3.74 \not< \varepsilon = 0.1$，所以算法不应终止，需要继续迭代。
+
+**输出**：
+最终得到的稀疏表示为 $\mathbf{x} = [0, 0, 0]^T$ (此结果为当前迭代步骤的输出，算法尚未收敛)
 
 ---
 
@@ -195,19 +262,17 @@ $$
 ## 五、稀疏性的实际应用举例
 
 ### 1. 图像去噪（Image Denoising）
-- 模型：y ≈ Ax + e，其中 x 是稀疏的
-- 目标：$$
-\min_x \|Ax - y\|_2^2 + \lambda \|x\|_1
-$$
+- 模型：$y \approx Ax + e$，其中 $x$ 是稀疏的
+- 目标：
+$$ \min_x \|Ax - y\|_2^2 + \lambda \|x\|_1 $$
 
 ### 2. 图像修复（Image Inpainting）
-- 缺失像素用掩码 R 表示
-- 模型：$$
-\min_x \|RAx - y\|_2^2 + \lambda \|x\|_1
-$$
+- 缺失像素用掩码 $R$ 表示
+- 模型：
+$$ \min_x \|RAx - y\|_2^2 + \lambda \|x\|_1 $$
 
 ### 3. 鲁棒人脸识别（Robust Face Recognition）
-- 模型：b = Ax + e，其中 x 和 e 都是稀疏的
+- 模型：$b = Ax + e$，其中 $x$ 和 $e$ 都是稀疏的
 - 利用稀疏性识别不同人脸
 
 ### 4. 压缩感知（Compressive Sensing）
