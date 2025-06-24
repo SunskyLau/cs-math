@@ -35,7 +35,7 @@
 - 公式：$$ \|x\|_2 = \sqrt{\sum_{i=1}^n x_i^2} $$
 - 例子：
   - x = [3, 4] → ||x||₂ = √(3² + 4²) = 5
-- 特点：常用于最小二乘法，能防止过拟合。
+- 特点：常用于最小二乘法，是凸函数，能防止过拟合。
 
 ---
 
@@ -220,6 +220,85 @@ $$
 
 **输出**：
 最终得到的稀疏表示为 $\mathbf{x} = [0, 0, 0]^T$ (此结果为当前迭代步骤的输出，算法尚未收敛)
+
+---
+### 1. 匹配追踪（Matching Pursuit）与正交匹配追踪（Orthogonal Matching Pursuit）
+
+#### 1.1 匹配追踪（MP）
+[前面MP的内容保持不变...]
+
+#### 1.2 正交匹配追踪（OMP）
+
+正交匹配追踪是对基础MP算法的改进版本，其主要改进在于每次迭代时都对已选择的所有原子进行正交化处理，从而得到更精确的系数估计。
+
+##### 算法目标
+与MP相同，给定信号 $\mathbf{b} \in \mathbb{R}^m$ 和字典矩阵 $\mathbf{A} = [\mathbf{a}_1, \mathbf{a}_2, ..., \mathbf{a}_n] \in \mathbb{R}^{m \times n}$，找到稀疏向量 $\mathbf{x}$，使得 $\mathbf{Ax} \approx \mathbf{b}$。
+
+##### 详细算法步骤
+1. **初始化**：
+   - 设置残差 $\mathbf{r}_0 = \mathbf{b}$
+   - 支撑集 $S_0 = \emptyset$
+   - 迭代计数器 $k = 0$
+   - 选定原子矩阵 $\mathbf{A}_k = []$（空矩阵）
+
+2. **迭代过程**：
+   - 计算相关性：
+     $$ \text{correlation}_j = |\langle \mathbf{r}_k, \mathbf{a}_j \rangle|, \quad j = 1,\ldots,n $$
+   - 选择最相关原子：
+     $$ j^* = \arg\max_j |\langle \mathbf{r}_k, \mathbf{a}_j \rangle| $$
+   - 更新支撑集：
+     $$ S_{k+1} = S_k \cup \{j^*\} $$
+   - 更新选定原子矩阵：
+     $$ \mathbf{A}_{k+1} = [\mathbf{A}_k \quad \mathbf{a}_{j^*}] $$
+   - 求解最小二乘问题：
+     $$ \mathbf{x}_{k+1} = \arg\min_{\mathbf{x}} \|\mathbf{A}_{k+1}\mathbf{x} - \mathbf{b}\|_2 $$
+   - 更新残差：
+     $$ \mathbf{r}_{k+1} = \mathbf{b} - \mathbf{A}_{k+1}\mathbf{x}_{k+1} $$
+   - $k = k + 1$
+
+3. **终止条件**（满足任一即可）：
+   - 残差范数小于阈值：$\|\mathbf{r}_k\|_2 < \varepsilon$
+   - 达到最大迭代次数：$k > K_{\text{max}}$
+   - 最大相关性小于阈值：$\max_j |\langle \mathbf{r}_k, \mathbf{a}_j \rangle| < \delta$
+
+##### OMP vs MP的主要区别
+1. **正交投影**：
+   - MP：每次只更新当前选择的原子对应的系数
+   - OMP：每次重新计算所有已选原子的系数
+
+2. **收敛速度**：
+   - OMP通常比MP收敛更快
+   - OMP保证在有限步内收敛
+
+3. **计算复杂度**：
+   - OMP每步需要解最小二乘问题，计算量较大
+   - MP计算量相对较小
+
+##### 算法示例
+考虑与MP相同的例子：
+
+**输入**：
+- 信号向量 $\mathbf{b} = [3, 2, 1]^T$
+- 字典矩阵 $\mathbf{A} = \begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}$
+- 停止阈值 $\varepsilon = 0.1$
+
+**第一次迭代**：
+1. 计算相关性（与MP相同）：
+   - $|\langle \mathbf{r}_0, \mathbf{a}_1 \rangle| = 4$
+   - $|\langle \mathbf{r}_0, \mathbf{a}_2 \rangle| = 3$
+   - $|\langle \mathbf{r}_0, \mathbf{a}_3 \rangle| = 5$
+
+2. 选择 $j^* = 3$，更新：
+   - $S_1 = \{3\}$
+   - $\mathbf{A}_1 = [\mathbf{a}_3] = \begin{bmatrix} 1 \\ 1 \\ 0 \end{bmatrix}$
+
+3. 求解最小二乘：
+   $$ \mathbf{x}_1 = (\mathbf{A}_1^T\mathbf{A}_1)^{-1}\mathbf{A}_1^T\mathbf{b} = \frac{1}{2}[5] = [2.5] $$
+
+4. 更新残差：
+   $$ \mathbf{r}_1 = \mathbf{b} - \mathbf{A}_1\mathbf{x}_1 = [3, 2, 1]^T - 2.5[1, 1, 0]^T = [0.5, -0.5, 1]^T $$
+
+这种方法通常能得到更准确的稀疏表示结果。
 
 ---
 

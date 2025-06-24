@@ -1,3 +1,4 @@
+# QR分解
 ## **1. 最小二乘问题（Least Square Approximation）**
 ### **1.1 问题背景**
 - **超定方程组**：当方程数量 $ m $ 大于未知数数量 $ n $（即 $ A \in \mathbb{R}^{m \times n}, m > n $）时，通常没有精确解。
