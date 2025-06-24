@@ -1,3 +1,4 @@
+ # Jacobi 迭代矩阵和Gauss-Seidel (GS) 迭代矩阵
 我们来求一个 **3×3 矩阵的 Jacobi 迭代矩阵** 和 **Gauss-Seidel (GS) 迭代矩阵**。
 
 ---
@@ -235,7 +236,3 @@ G =
 0 & \frac{1}{64} & \frac{1}{16}
 \end{bmatrix}
 $$
-
----
-
-如果你有特定的矩阵 $ A $，我可以帮你代入并重新计算相应的 Jacobi 和 GS 迭代矩阵。欢迎继续提问！
